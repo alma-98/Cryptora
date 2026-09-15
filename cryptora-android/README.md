@@ -1,16 +1,18 @@
 # Cryptora Android
 
-Android application.
+Cryptora Wallet Android Application.
 
 Technology:
-
-Kotlin + Android SDK
+- Kotlin
+- Android SDK
+- Jetpack Compose
 
 Modules:
-
-- Login
+- Administrator Login
 - Dashboard
-- Coin
+- Native Coin
 - Wallet
 - Transaction
 - Tenor
+- Monitoring
+- Notification
