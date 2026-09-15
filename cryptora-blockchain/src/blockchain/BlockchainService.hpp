@@ -26,6 +26,9 @@ private:
     std::unordered_map<std::string, Transaction>
         transactions;
 
+    static constexpr const char* GENESIS_ADDRESS =
+        "CRYPTORA_GENESIS";
+
 public:
 
     BlockchainService() {
@@ -35,12 +38,27 @@ public:
             "Cryptora Coin",
             21000000
         );
+
+        coinIssuer.issue(
+            21000000
+        );
+
+        ledger.issue(
+            GENESIS_ADDRESS,
+            21000000
+        );
     }
 
     bool issueCoin(
             const std::string& address,
             long double amount
     ) {
+
+        if (address.empty() ||
+            amount <= 0) {
+
+            return false;
+        }
 
         if (!coinIssuer.issue(amount)) {
             return false;
@@ -109,6 +127,15 @@ public:
             return "REJECTED: insufficient balance";
         }
 
+        transaction.status = "CONFIRMED";
+
+        if (!ledger.applyTransaction(
+                transaction
+            )) {
+
+            return "REJECTED: ledger update failed";
+        }
+
         Block block;
 
         block.height =
@@ -136,15 +163,6 @@ public:
             );
 
         blockchain.addBlock(block);
-
-        transaction.status = "CONFIRMED";
-
-        if (!ledger.applyTransaction(
-                transaction
-            )) {
-
-            return "REJECTED: ledger update failed";
-        }
 
         transactions.emplace(
             transaction.id,
