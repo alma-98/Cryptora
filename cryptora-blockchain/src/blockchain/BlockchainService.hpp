@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Blockchain.hpp"
+#include "../crypto/Hash.hpp"
 #include "../crypto/TransactionHasher.hpp"
 #include "../transaction/Transaction.hpp"
 
