@@ -1,9 +1,8 @@
-#include "blockchain/Blockchain.hpp"
 #include "blockchain/BlockchainService.hpp"
 #include "blockchain/BlockchainValidator.hpp"
 #include "network/HttpServer.hpp"
 #include "network/NodeConfig.hpp"
-#include "transaction/Transaction.hpp"
+#include "transaction/TransactionJsonParser.hpp"
 
 #include <iostream>
 #include <string>
@@ -28,6 +27,11 @@ int main() {
     std::cout
         << "Native Asset: "
         << cryptora::NodeConfig::NATIVE_ASSET
+        << std::endl;
+
+    std::cout
+        << "RPC Port: "
+        << cryptora::NodeConfig::RPC_PORT
         << std::endl;
 
     std::cout
@@ -74,24 +78,32 @@ int main() {
                 if (method == "POST" &&
                     path == "/transactions") {
 
-                    cryptora::Transaction transaction;
+                    cryptora::Transaction transaction =
+                        cryptora::TransactionJsonParser::parse(
+                            body
+                        );
 
-                    transaction.from = body;
-                    transaction.to = body;
-                    transaction.asset =
-                        cryptora::NodeConfig::NATIVE_ASSET;
-                    transaction.amount = "0";
-                    transaction.tenor = "0";
+                    const std::string transactionId =
+                        blockchainService.submitTransaction(
+                            transaction
+                        );
 
-                    const std::string result =
-                        blockchainService
-                            .submitTransaction(
-                                transaction
-                            );
+                    if (transactionId.rfind(
+                            "REJECTED:",
+                            0
+                        ) == 0) {
+
+                        return
+                            "{\"status\":\"REJECTED\","
+                            "\"message\":\"" +
+                            transactionId +
+                            "\"}";
+                    }
 
                     return
-                        "{\"transactionId\":\"" +
-                        result +
+                        "{\"status\":\"ACCEPTED\","
+                        "\"transactionId\":\"" +
+                        transactionId +
                         "\"}";
                 }
 
