@@ -6,7 +6,6 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace cryptora {
 
@@ -50,8 +49,6 @@ public:
 
         transaction.status = "PENDING";
 
-        transactionCounter++;
-
         Block block;
 
         block.height =
@@ -63,14 +60,22 @@ public:
             blockchain.latestBlock().hash;
 
         block.timestamp =
-            transactionCounter;
+            ++transactionCounter;
 
         block.transactionIds.push_back(
             transaction.id
         );
 
         block.hash =
-            TransactionHasher::createId(transaction);
+            TransactionHasher::sha256(
+                block.previousHash +
+                "|" +
+                transaction.id +
+                "|" +
+                std::to_string(block.timestamp)
+            );
+
+        blockchain.addBlock(block);
 
         return transaction.id;
     }
