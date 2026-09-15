@@ -11,6 +11,7 @@ namespace cryptora {
 class Blockchain {
 
 private:
+
     std::vector<Block> chain;
 
 public:
@@ -29,6 +30,19 @@ public:
 
     std::size_t height() const {
         return chain.size();
+    }
+
+    void addBlock(const Block& block) {
+
+        if (block.height != chain.size()) {
+            return;
+        }
+
+        if (block.previousHash != chain.back().hash) {
+            return;
+        }
+
+        chain.push_back(block);
     }
 
 private:
