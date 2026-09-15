@@ -47,6 +47,44 @@ public:
         chain.push_back(block);
     }
 
+    bool replaceChain(
+            const std::vector<Block>& newChain
+    ) {
+
+        if (newChain.empty()) {
+            return false;
+        }
+
+        if (newChain.front().height != 0) {
+            return false;
+        }
+
+        if (newChain.front().previousHash != "0") {
+            return false;
+        }
+
+        for (
+            std::size_t i = 1;
+            i < newChain.size();
+            ++i
+        ) {
+
+            if (newChain[i].height != i) {
+                return false;
+            }
+
+            if (newChain[i].previousHash !=
+                newChain[i - 1].hash) {
+
+                return false;
+            }
+        }
+
+        chain = newChain;
+
+        return true;
+    }
+
 private:
 
     void createGenesisBlock() {
