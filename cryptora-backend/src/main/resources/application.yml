@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: cryptora-backend
+
+  datasource:
+    url: ${CRYPTORA_DB_URL:jdbc:postgresql://localhost:5432/cryptora}
+    username: ${CRYPTORA_DB_USERNAME:cryptora}
+    password: ${CRYPTORA_DB_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+cryptora:
+  blockchain:
+    network: cryptora-native
+    symbol: CRC
+    rpc-url: ${CRYPTORA_BLOCKCHAIN_RPC:http://localhost:8545}
