@@ -1,4 +1,5 @@
 #include "blockchain/BlockchainService.hpp"
+#include <sstream>
 #include "blockchain/BlockchainValidator.hpp"
 #include "network/HttpServer.hpp"
 #include "network/NodeConfig.hpp"
@@ -436,8 +437,16 @@ int main() {
                                 if (txId ==
                                     transaction->id) {
 
+                                    std::ostringstream blockNumberStream;
+
+                                    blockNumberStream
+                                        << "\"0x"
+                                        << std::hex
+                                        << block.height
+                                        << "\"";
+
                                     blockNumber =
-                                        "\"0x\"";
+                                        blockNumberStream.str();
 
                                     break;
                                 }
