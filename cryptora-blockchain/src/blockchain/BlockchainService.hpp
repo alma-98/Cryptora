@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 namespace cryptora {
 
@@ -14,7 +15,11 @@ class BlockchainService {
 private:
 
     Blockchain blockchain;
+
     std::uint64_t transactionCounter{0};
+
+    std::unordered_map<std::string, Transaction>
+        transactions;
 
 public:
 
@@ -36,6 +41,10 @@ public:
             return "REJECTED: asset is required";
         }
 
+        if (transaction.asset != "CRC") {
+            return "REJECTED: unsupported native asset";
+        }
+
         if (transaction.amount.empty()) {
             return "REJECTED: amount is required";
         }
@@ -45,9 +54,17 @@ public:
         }
 
         transaction.id =
-            TransactionHasher::createId(transaction);
+            TransactionHasher::createId(
+                transaction
+            );
 
         transaction.status = "PENDING";
+
+        if (transactions.find(transaction.id)
+            != transactions.end()) {
+
+            return transaction.id;
+        }
 
         Block block;
 
@@ -67,7 +84,7 @@ public:
         );
 
         block.hash =
-            TransactionHasher::sha256(
+            Hash::sha256(
                 block.previousHash +
                 "|" +
                 transaction.id +
@@ -77,7 +94,26 @@ public:
 
         blockchain.addBlock(block);
 
+        transactions.emplace(
+            transaction.id,
+            transaction
+        );
+
         return transaction.id;
+    }
+
+    const Transaction* getTransaction(
+            const std::string& transactionId
+    ) const {
+
+        const auto iterator =
+            transactions.find(transactionId);
+
+        if (iterator == transactions.end()) {
+            return nullptr;
+        }
+
+        return &iterator->second;
     }
 
     const Blockchain& getBlockchain() const {
