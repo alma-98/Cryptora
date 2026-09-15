@@ -12,6 +12,9 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <fstream>
+#include <sstream>
+#include <vector>
 
 namespace cryptora {
 
@@ -28,6 +31,9 @@ private:
 
     std::unordered_map<std::string, Transaction>
         transactions;
+
+    static constexpr const char* TRANSACTION_STORAGE =
+        "cryptora-transactions.dat";
 
     static constexpr const char* GENESIS_ADDRESS =
         "CRYPTORA_GENESIS";
@@ -74,6 +80,8 @@ public:
                 blockchain.getChain()
             );
         }
+
+        loadTransactions();
     }
 
     bool issueCoin(
@@ -210,6 +218,8 @@ public:
             transaction
         );
 
+        saveTransactions();
+
         return transaction.id;
     }
 
@@ -247,6 +257,79 @@ public:
     }
 
 private:
+
+    void saveTransactions() const {
+
+        std::ofstream output(
+            TRANSACTION_STORAGE,
+            std::ios::trunc
+        );
+
+        if (!output.is_open()) {
+            return;
+        }
+
+        for (const auto& entry : transactions) {
+
+            const Transaction& tx = entry.second;
+
+            output
+                << tx.id << "|"
+                << tx.from << "|"
+                << tx.to << "|"
+                << tx.asset << "|"
+                << tx.amount << "|"
+                << tx.tenor << "|"
+                << tx.status
+                << "\n";
+        }
+    }
+
+    void loadTransactions() {
+
+        std::ifstream input(
+            TRANSACTION_STORAGE
+        );
+
+        if (!input.is_open()) {
+            return;
+        }
+
+        std::string line;
+
+        while (std::getline(input, line)) {
+
+            if (line.empty()) {
+                continue;
+            }
+
+            std::stringstream stream(line);
+            std::vector<std::string> fields;
+            std::string field;
+
+            while (std::getline(stream, field, '|')) {
+                fields.push_back(field);
+            }
+
+            if (fields.size() != 7) {
+                continue;
+            }
+
+            Transaction tx;
+
+            tx.id = fields[0];
+            tx.from = fields[1];
+            tx.to = fields[2];
+            tx.asset = fields[3];
+            tx.amount = fields[4];
+            tx.tenor = fields[5];
+            tx.status = fields[6];
+
+            if (!tx.id.empty()) {
+                transactions[tx.id] = tx;
+            }
+        }
+    }
 
     static bool validateLoadedChain(
             const std::vector<Block>& chain
