@@ -18,29 +18,66 @@ public:
 
     Ledger() = default;
 
-    void applyTransaction(
+    bool issue(
+            const std::string& address,
+            long double amount
+    ) {
+
+        if (address.empty() ||
+            amount <= 0) {
+
+            return false;
+        }
+
+        balances[address] += amount;
+
+        return true;
+    }
+
+    bool applyTransaction(
             const Transaction& transaction
     ) {
 
         if (transaction.asset != "CRC") {
-            return;
+            return false;
         }
 
         if (transaction.from.empty() ||
             transaction.to.empty()) {
-            return;
+
+            return false;
         }
 
-        const long double amount =
-            std::stold(transaction.amount);
+        long double amount;
+
+        try {
+
+            amount =
+                std::stold(transaction.amount);
+
+        } catch (...) {
+
+            return false;
+        }
 
         if (amount <= 0) {
-            return;
+            return false;
         }
 
-        balances[transaction.from] -= amount;
+        const auto sender =
+            balances.find(transaction.from);
+
+        if (sender == balances.end() ||
+            sender->second < amount) {
+
+            return false;
+        }
+
+        sender->second -= amount;
 
         balances[transaction.to] += amount;
+
+        return true;
     }
 
     long double getBalance(
