@@ -271,13 +271,251 @@ int main() {
                     const std::string rpcMethod =
                         extractString(body, "method");
 
+                if (method == "GET" &&
+                    path == "/wallets") {
+
+                    const auto wallets =
+                        blockchainService.getWallets();
+
+                    std::string result =
+                        "{\"wallets\":[";
+
+                    bool first = true;
+
+                    for (const auto& wallet : wallets) {
+
+                        if (!first) {
+                            result += ",";
+                        }
+
+                        first = false;
+
+                        result +=
+                            "{\"address\":\"" +
+                            wallet.address +
+                            "\",\"label\":\"" +
+                            wallet.label +
+                            "\",\"active\":" +
+                            (wallet.active ? "true" : "false") +
+                            "}";
+                    }
+
+                    result += "]}";
+
+                    return result;
+                }
+
+                if (method == "GET" &&
+                    path.rfind("/wallet/", 0) == 0) {
+
+                    const std::string address =
+                        path.substr(
+                            std::string("/wallet/").size()
+                        );
+
+                    const auto* wallet =
+                        blockchainService.getWallet(address);
+
+                    if (wallet == nullptr) {
+
+                        return
+                            "{\"error\":\"wallet_not_found\"}";
+                    }
+
+                    const long double balance =
+                        blockchainService.getBalance(address);
+
+                    std::ostringstream balanceStream;
+
+                    balanceStream.setf(
+                        std::ios::fixed
+                    );
+
+                    balanceStream.precision(6);
+
+                    balanceStream << balance;
+
+                    return
+                        "{\"address\":\"" +
+                        wallet->address +
+                        "\",\"label\":\"" +
+                        wallet->label +
+                        "\",\"active\":" +
+                        (wallet->active ? "true" : "false") +
+                        ",\"asset\":\"CRC\"" +
+                        ",\"balance\":\"" +
+                        balanceStream.str() +
+                        "\"}";
+                }
+
+extractString(body, "method");
+
                     const std::string rpcId =
                         extractString(body, "id");
 
                     const std::string id =
                         rpcId.empty() ? "1" : rpcId;
 
-                    if (rpcMethod == "cryptora_sendTransaction") {
+                    
+                    if (rpcMethod ==
+                        "cryptora_createWallet") {
+
+                        const std::string address =
+                            extractString(
+                                body,
+                                "address"
+                            );
+
+                        const std::string label =
+                            extractString(
+                                body,
+                                "label"
+                            );
+
+                        if (address.empty()) {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":\"" + id + "\","
+                                "\"error\":{"
+                                "\"code\":-32602,"
+                                "\"message\":"
+                                "\"wallet address is required\""
+                                "}}";
+                        }
+
+                        const bool created =
+                            blockchainService.registerWallet(
+                                address,
+                                label
+                            );
+
+                        if (!created) {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":\"" + id + "\","
+                                "\"error\":{"
+                                "\"code\":-32000,"
+                                "\"message\":"
+                                "\"wallet already exists\""
+                                "}}";
+                        }
+
+                        return
+                            "{\"jsonrpc\":\"2.0\","
+                            "\"id\":\"" + id + "\","
+                            "\"result\":{"
+                            "\"address\":\"" +
+                            address +
+                            "\","
+                            "\"label\":\"" +
+                            label +
+                            "\","
+                            "\"active\":true"
+                            "}}";
+                    }
+
+                    if (rpcMethod ==
+                        "cryptora_getWallet") {
+
+                        const std::string address =
+                            extractString(
+                                body,
+                                "address"
+                            );
+
+                        const auto* wallet =
+                            blockchainService.getWallet(
+                                address
+                            );
+
+                        if (wallet == nullptr) {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":\"" + id + "\","
+                                "\"result\":null}";
+                        }
+
+                        return
+                            "{\"jsonrpc\":\"2.0\","
+                            "\"id\":\"" + id + "\","
+                            "\"result\":{"
+                            "\"address\":\"" +
+                            wallet->address +
+                            "\","
+                            "\"label\":\"" +
+                            wallet->label +
+                            "\","
+                            "\"active\":" +
+                            (wallet->active ? "true" : "false") +
+                            "}}";
+                    }
+
+                    if (rpcMethod ==
+                        "cryptora_updateWallet") {
+
+                        const std::string address =
+                            extractString(
+                                body,
+                                "address"
+                            );
+
+                        const std::string label =
+                            extractString(
+                                body,
+                                "label"
+                            );
+
+                        const std::string activeValue =
+                            extractString(
+                                body,
+                                "active"
+                            );
+
+                        const bool active =
+                            activeValue != "false" &&
+                            activeValue != "0";
+
+                        const bool updated =
+                            blockchainService.updateWallet(
+                                address,
+                                label,
+                                active
+                            );
+
+                        return
+                            "{\"jsonrpc\":\"2.0\","
+                            "\"id\":\"" + id + "\","
+                            "\"result\":" +
+                            (updated ? "true" : "false") +
+                            "}";
+                    }
+
+                    if (rpcMethod ==
+                        "cryptora_deleteWallet") {
+
+                        const std::string address =
+                            extractString(
+                                body,
+                                "address"
+                            );
+
+                        const bool deleted =
+                            blockchainService.deleteWallet(
+                                address
+                            );
+
+                        return
+                            "{\"jsonrpc\":\"2.0\","
+                            "\"id\":\"" + id + "\","
+                            "\"result\":" +
+                            (deleted ? "true" : "false") +
+                            "}";
+                    }
+
+if (rpcMethod == "cryptora_sendTransaction") {
 
                         const std::string from =
                             extractString(body, "from");
