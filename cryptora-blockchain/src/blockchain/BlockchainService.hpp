@@ -3,6 +3,7 @@
 #include "Blockchain.hpp"
 #include "../crypto/Hash.hpp"
 #include "../crypto/TransactionHasher.hpp"
+#include "../ledger/CoinIssuer.hpp"
 #include "../ledger/Ledger.hpp"
 #include "../transaction/Transaction.hpp"
 
@@ -18,6 +19,7 @@ private:
 
     Blockchain blockchain;
     Ledger ledger;
+    CoinIssuer coinIssuer;
 
     std::uint64_t transactionCounter{0};
 
@@ -26,7 +28,29 @@ private:
 
 public:
 
-    BlockchainService() = default;
+    BlockchainService() {
+
+        coinIssuer.initialize(
+            "CRC",
+            "Cryptora Coin",
+            21000000
+        );
+    }
+
+    bool issueCoin(
+            const std::string& address,
+            long double amount
+    ) {
+
+        if (!coinIssuer.issue(amount)) {
+            return false;
+        }
+
+        return ledger.issue(
+            address,
+            amount
+        );
+    }
 
     std::string submitTransaction(
             Transaction transaction
@@ -38,10 +62,6 @@ public:
 
         if (transaction.to.empty()) {
             return "REJECTED: destination address is required";
-        }
-
-        if (transaction.asset.empty()) {
-            return "REJECTED: asset is required";
         }
 
         if (transaction.asset != "CRC") {
@@ -56,12 +76,20 @@ public:
             return "REJECTED: tenor is required";
         }
 
+        long double amount;
+
         try {
-            if (std::stold(transaction.amount) <= 0) {
-                return "REJECTED: amount must be greater than zero";
-            }
+
+            amount =
+                std::stold(transaction.amount);
+
         } catch (...) {
+
             return "REJECTED: invalid amount";
+        }
+
+        if (amount <= 0) {
+            return "REJECTED: amount must be greater than zero";
         }
 
         transaction.id =
@@ -69,12 +97,16 @@ public:
                 transaction
             );
 
-        transaction.status = "CONFIRMED";
-
         if (transactions.find(transaction.id)
             != transactions.end()) {
 
             return transaction.id;
+        }
+
+        if (ledger.getBalance(transaction.from)
+            < amount) {
+
+            return "REJECTED: insufficient balance";
         }
 
         Block block;
@@ -105,12 +137,17 @@ public:
 
         blockchain.addBlock(block);
 
+        transaction.status = "CONFIRMED";
+
+        if (!ledger.applyTransaction(
+                transaction
+            )) {
+
+            return "REJECTED: ledger update failed";
+        }
+
         transactions.emplace(
             transaction.id,
-            transaction
-        );
-
-        ledger.applyTransaction(
             transaction
         );
 
@@ -136,6 +173,10 @@ public:
     ) const {
 
         return ledger.getBalance(address);
+    }
+
+    const CoinState& getCoinState() const {
+        return coinIssuer.getState();
     }
 
     const Blockchain& getBlockchain() const {
