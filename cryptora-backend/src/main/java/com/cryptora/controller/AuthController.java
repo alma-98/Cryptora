@@ -1,23 +1,27 @@
 package com.cryptora.controller;
 
+import com.cryptora.entity.AdministratorEntity;
 import com.cryptora.model.LoginRequest;
 import com.cryptora.model.LoginResponse;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.cryptora.service.AuthenticationService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationService authenticationService;
 
-    public AuthController(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
+    public AuthController(
+            AuthenticationService authenticationService
+    ) {
+        this.authenticationService = authenticationService;
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
-
+    public LoginResponse login(
+            @RequestBody LoginRequest request
+    ) {
         if (request.getUsername() == null ||
                 request.getUsername().isBlank() ||
                 request.getPassword() == null ||
@@ -30,10 +34,26 @@ public class AuthController {
             );
         }
 
-        return new LoginResponse(
-                false,
-                "Administrator authentication requires persistent administrator data",
-                request.getUsername()
-        );
+        try {
+            AdministratorEntity administrator =
+                    authenticationService.authenticate(
+                            request.getUsername(),
+                            request.getPassword()
+                    );
+
+            return new LoginResponse(
+                    true,
+                    "Administrator authentication successful",
+                    administrator.getUsername()
+            );
+
+        } catch (RuntimeException exception) {
+
+            return new LoginResponse(
+                    false,
+                    "Invalid administrator credentials",
+                    null
+            );
+        }
     }
 }
