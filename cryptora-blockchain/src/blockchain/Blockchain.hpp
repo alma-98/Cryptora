@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Block.hpp"
+#include "../ledger/Genesis.hpp"
+#include "../ledger/GenesisBuilder.hpp"
 
 #include <cstdint>
 #include <string>
@@ -49,12 +51,17 @@ private:
 
     void createGenesisBlock() {
 
-        Block genesis;
+        GenesisAllocation allocation;
 
-        genesis.height = 0;
-        genesis.previousHash = "0";
-        genesis.timestamp = 0;
-        genesis.hash = "CRYPTORA_GENESIS";
+        allocation.address =
+            "CRYPTORA_GENESIS";
+
+        allocation.amount = 21000000;
+
+        Block genesis =
+            GenesisBuilder::create(
+                allocation
+            );
 
         chain.push_back(genesis);
     }
