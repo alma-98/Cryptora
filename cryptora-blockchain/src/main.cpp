@@ -104,6 +104,56 @@ int main() {
                         "\"}";
                 }
 
+                if (method == "GET" &&
+                    path.rfind("/transactions/", 0) == 0) {
+
+                    const std::string transactionId =
+                        path.substr(
+                            std::string("/transactions/").length()
+                        );
+
+                    if (transactionId.empty()) {
+
+                        return
+                            "{\"error\":\"transaction_id_required\"}";
+                    }
+
+                    const cryptora::Transaction* transaction =
+                        blockchainService.getTransaction(
+                            transactionId
+                        );
+
+                    if (transaction == nullptr) {
+
+                        return
+                            "{\"status\":\"NOT_FOUND\"}";
+                    }
+
+                    return
+                        "{\"status\":\"FOUND\","
+                        "\"transactionId\":\"" +
+                        transaction->id +
+                        "\","
+                        "\"from\":\"" +
+                        transaction->from +
+                        "\","
+                        "\"to\":\"" +
+                        transaction->to +
+                        "\","
+                        "\"asset\":\"" +
+                        transaction->asset +
+                        "\","
+                        "\"amount\":\"" +
+                        transaction->amount +
+                        "\","
+                        "\"tenor\":\"" +
+                        transaction->tenor +
+                        "\","
+                        "\"transactionStatus\":\"" +
+                        transaction->status +
+                        "\"}";
+                }
+
                 if (method == "POST" &&
                     path == "/transactions") {
 
