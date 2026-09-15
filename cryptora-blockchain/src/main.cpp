@@ -276,6 +276,78 @@ int main() {
                     const std::string id =
                         rpcId.empty() ? "1" : rpcId;
 
+                    if (rpcMethod == "cryptora_sendTransaction") {
+
+                        const std::string from =
+                            extractString(body, "from");
+
+                        const std::string to =
+                            extractString(body, "to");
+
+                        std::string asset =
+                            extractString(body, "asset");
+
+                        const std::string amount =
+                            extractString(body, "amount");
+
+                        const std::string tenor =
+                            extractString(body, "tenor");
+
+                        if (asset.empty()) {
+                            asset = "CRC";
+                        }
+
+                        if (from.empty() ||
+                            to.empty() ||
+                            amount.empty() ||
+                            tenor.empty()) {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":" + id + ","
+                                "\"error\":{"
+                                "\"code\":-32602,"
+                                "\"message\":"
+                                "\"from, to, amount and tenor are required\""
+                                "}}";
+                        }
+
+                        cryptora::Transaction transaction;
+
+                        transaction.from = from;
+                        transaction.to = to;
+                        transaction.asset = asset;
+                        transaction.amount = amount;
+                        transaction.tenor = tenor;
+
+                        const std::string transactionId =
+                            blockchainService.submitTransaction(
+                                transaction
+                            );
+
+                        if (transactionId.rfind(
+                                "REJECTED:",
+                                0
+                            ) == 0) {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":" + id + ","
+                                "\"error\":{"
+                                "\"code\":-32000,"
+                                "\"message\":\"" +
+                                transactionId +
+                                "\"}}";
+                        }
+
+                        return
+                            "{\"jsonrpc\":\"2.0\","
+                            "\"id\":" + id + ","
+                            "\"result\":\"" +
+                            transactionId +
+                            "\"}";
+                    }
+
                     if (rpcMethod == "cryptora_getTransaction" ||
                         rpcMethod == "eth_getTransactionByHash" ||
                         rpcMethod == "eth_getTransactionReceipt") {
