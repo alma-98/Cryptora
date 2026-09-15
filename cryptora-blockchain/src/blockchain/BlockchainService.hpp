@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Blockchain.hpp"
+#include "BlockchainValidator.hpp"
 #include "../crypto/Hash.hpp"
 #include "../crypto/TransactionHasher.hpp"
 #include "../ledger/CoinIssuer.hpp"
@@ -42,18 +43,48 @@ public:
             21000000
         );
 
-        coinIssuer.issue(
-            21000000
-        );
+        if (!storage.exists()) {
 
-        ledger.issue(
-            GENESIS_ADDRESS,
-            21000000
-        );
+            coinIssuer.issue(
+                21000000
+            );
 
-        storage.save(
-            blockchain.getChain()
-        );
+            ledger.issue(
+                GENESIS_ADDRESS,
+                21000000
+            );
+
+            storage.save(
+                blockchain.getChain()
+            );
+
+        } else {
+
+            std::vector<Block> loadedChain;
+
+            if (storage.load(loadedChain) &&
+                validateLoadedChain(loadedChain)) {
+
+                blockchain.replaceChain(
+                    loadedChain
+                );
+
+            } else {
+
+                coinIssuer.issue(
+                    21000000
+                );
+
+                ledger.issue(
+                    GENESIS_ADDRESS,
+                    21000000
+                );
+
+                storage.save(
+                    blockchain.getChain()
+                );
+            }
+        }
     }
 
     bool issueCoin(
@@ -224,6 +255,44 @@ public:
 
     std::uint64_t getTransactionCount() const {
         return transactionCounter;
+    }
+
+private:
+
+    static bool validateLoadedChain(
+            const std::vector<Block>& chain
+    ) {
+
+        if (chain.empty()) {
+            return false;
+        }
+
+        if (chain.front().height != 0) {
+            return false;
+        }
+
+        if (chain.front().previousHash != "0") {
+            return false;
+        }
+
+        for (std::size_t i = 1; i < chain.size(); ++i) {
+
+            if (chain[i].height != i) {
+                return false;
+            }
+
+            if (chain[i].previousHash !=
+                chain[i - 1].hash) {
+
+                return false;
+            }
+
+            if (chain[i].transactionIds.empty()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 };
 
