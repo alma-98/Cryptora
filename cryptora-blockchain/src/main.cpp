@@ -231,7 +231,7 @@ int main() {
                         extractString(body, "method");
 
                     const std::string rpcId =
-                        extractString(body, "id");
+                        extractString(body, "requestId");
 
                     const std::string id =
                         rpcId.empty() ? "1" : rpcId;
