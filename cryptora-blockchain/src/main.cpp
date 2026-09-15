@@ -186,6 +186,208 @@ int main() {
                         "\"}";
                 }
 
+
+                if (method == "POST" && path == "/") {
+
+                    auto extractString =
+                        [](const std::string& json,
+                           const std::string& key) -> std::string {
+
+                        const std::string token =
+                            "\"" + key + "\"";
+
+                        const std::size_t keyPos =
+                            json.find(token);
+
+                        if (keyPos == std::string::npos)
+                            return "";
+
+                        const std::size_t colon =
+                            json.find(':',
+                                      keyPos + token.length());
+
+                        if (colon == std::string::npos)
+                            return "";
+
+                        const std::size_t firstQuote =
+                            json.find('"', colon + 1);
+
+                        if (firstQuote == std::string::npos)
+                            return "";
+
+                        const std::size_t secondQuote =
+                            json.find('"', firstQuote + 1);
+
+                        if (secondQuote == std::string::npos)
+                            return "";
+
+                        return json.substr(
+                            firstQuote + 1,
+                            secondQuote - firstQuote - 1
+                        );
+                    };
+
+                    const std::string rpcMethod =
+                        extractString(body, "method");
+
+                    const std::string rpcId =
+                        extractString(body, "id");
+
+                    const std::string id =
+                        rpcId.empty() ? "1" : rpcId;
+
+                    if (rpcMethod == "cryptora_getTransaction" ||
+                        rpcMethod == "eth_getTransactionByHash" ||
+                        rpcMethod == "eth_getTransactionReceipt") {
+
+                        std::string transactionId =
+                            extractString(
+                                body,
+                                "transactionId"
+                            );
+
+                        if (transactionId.empty()) {
+                            transactionId =
+                                extractString(
+                                    body,
+                                    "hash"
+                                );
+                        }
+
+                        if (transactionId.empty()) {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":\"" + id + "\","
+                                "\"error\":{"
+                                "\"code\":-32602,"
+                                "\"message\":"
+                                "\"transaction hash is required\""
+                                "}}";
+                        }
+
+                        const cryptora::Transaction* transaction =
+                            blockchainService.getTransaction(
+                                transactionId
+                            );
+
+                        if (transaction == nullptr) {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":\"" + id + "\","
+                                "\"result\":null}";
+                        }
+
+                        if (rpcMethod ==
+                            "cryptora_getTransaction") {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":\"" + id + "\","
+                                "\"result\":{"
+                                "\"transactionId\":\"" +
+                                transaction->id +
+                                "\","
+                                "\"from\":\"" +
+                                transaction->from +
+                                "\","
+                                "\"to\":\"" +
+                                transaction->to +
+                                "\","
+                                "\"asset\":\"" +
+                                transaction->asset +
+                                "\","
+                                "\"amount\":\"" +
+                                transaction->amount +
+                                "\","
+                                "\"tenor\":\"" +
+                                transaction->tenor +
+                                "\","
+                                "\"status\":\"" +
+                                transaction->status +
+                                "\"}}";
+                        }
+
+                        std::string blockNumber = "null";
+
+                        const auto& chain =
+                            blockchainService
+                                .getBlockchain()
+                                .getChain();
+
+                        for (const auto& block : chain) {
+
+                            for (const auto& txId :
+                                 block.transactionIds) {
+
+                                if (txId ==
+                                    transaction->id) {
+
+                                    blockNumber =
+                                        "\"0x\"";
+
+                                    break;
+                                }
+                            }
+
+                            if (blockNumber != "null")
+                                break;
+                        }
+
+                        if (rpcMethod ==
+                            "eth_getTransactionByHash") {
+
+                            return
+                                "{\"jsonrpc\":\"2.0\","
+                                "\"id\":\"" + id + "\","
+                                "\"result\":{"
+                                "\"hash\":\"" +
+                                transaction->id +
+                                "\","
+                                "\"from\":\"" +
+                                transaction->from +
+                                "\","
+                                "\"to\":\"" +
+                                transaction->to +
+                                "\","
+                                "\"value\":\"" +
+                                transaction->amount +
+                                "\","
+                                "\"asset\":\"" +
+                                transaction->asset +
+                                "\","
+                                "\"tenor\":\"" +
+                                transaction->tenor +
+                                "\","
+                                "\"blockNumber\":" +
+                                blockNumber +
+                                ","
+                                "\"status\":\"" +
+                                transaction->status +
+                                "\"}}";
+                        }
+
+                        return
+                            "{\"jsonrpc\":\"2.0\","
+                            "\"id\":\"" + id + "\","
+                            "\"result\":{"
+                            "\"transactionHash\":\"" +
+                            transaction->id +
+                            "\","
+                            "\"blockNumber\":" +
+                            blockNumber +
+                            ","
+                            "\"status\":\"0x1\","
+                            "\"from\":\"" +
+                            transaction->from +
+                            "\","
+                            "\"to\":\"" +
+                            transaction->to +
+                            "\"}}";
+                    }
+                }
+
                 return
                     "{\"error\":\"endpoint_not_found\"}";
             }
