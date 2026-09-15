@@ -1,17 +1,18 @@
 #pragma once
 
 #include "Blockchain.hpp"
+#include "../crypto/TransactionHasher.hpp"
 #include "../transaction/Transaction.hpp"
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace cryptora {
 
 class BlockchainService {
 
 private:
+
     Blockchain blockchain;
     std::uint64_t transactionCounter{0};
 
@@ -20,7 +21,7 @@ public:
     BlockchainService() = default;
 
     std::string submitTransaction(
-            const Transaction& transaction
+            Transaction transaction
     ) {
 
         if (transaction.from.empty()) {
@@ -39,10 +40,18 @@ public:
             return "REJECTED: amount is required";
         }
 
+        if (transaction.tenor.empty()) {
+            return "REJECTED: tenor is required";
+        }
+
+        transaction.id =
+            TransactionHasher::createId(transaction);
+
+        transaction.status = "PENDING";
+
         transactionCounter++;
 
-        return "ACCEPTED:" +
-               std::to_string(transactionCounter);
+        return transaction.id;
     }
 
     const Blockchain& getBlockchain() const {
