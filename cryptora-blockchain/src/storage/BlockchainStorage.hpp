@@ -3,6 +3,7 @@
 #include "../blockchain/Block.hpp"
 
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -62,6 +63,120 @@ public:
 
             file << "\n";
         }
+
+        return true;
+    }
+
+    bool load(
+            std::vector<Block>& chain
+    ) const {
+
+        std::ifstream file(filePath);
+
+        if (!file.is_open()) {
+            return false;
+        }
+
+        std::vector<Block> loadedChain;
+
+        std::string line;
+
+        while (std::getline(file, line)) {
+
+            if (line.empty()) {
+                continue;
+            }
+
+            std::stringstream stream(line);
+
+            std::string height;
+            std::string previousHash;
+            std::string hash;
+            std::string timestamp;
+            std::string transactionIds;
+
+            std::getline(
+                stream,
+                height,
+                '|'
+            );
+
+            std::getline(
+                stream,
+                previousHash,
+                '|'
+            );
+
+            std::getline(
+                stream,
+                hash,
+                '|'
+            );
+
+            std::getline(
+                stream,
+                timestamp,
+                '|'
+            );
+
+            std::getline(
+                stream,
+                transactionIds
+            );
+
+            try {
+
+                Block block;
+
+                block.height =
+                    std::stoull(height);
+
+                block.previousHash =
+                    previousHash;
+
+                block.hash =
+                    hash;
+
+                block.timestamp =
+                    std::stoull(timestamp);
+
+                std::stringstream idStream(
+                    transactionIds
+                );
+
+                std::string transactionId;
+
+                while (
+                    std::getline(
+                        idStream,
+                        transactionId,
+                        ',\
+                    )
+                ) {
+
+                    if (!transactionId.empty()) {
+
+                        block.transactionIds.push_back(
+                            transactionId
+                        );
+                    }
+                }
+
+                loadedChain.push_back(
+                    block
+                );
+
+            } catch (...) {
+
+                return false;
+            }
+        }
+
+        if (loadedChain.empty()) {
+            return false;
+        }
+
+        chain = loadedChain;
 
         return true;
     }
