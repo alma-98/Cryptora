@@ -3,6 +3,7 @@
 #include "Blockchain.hpp"
 #include "../crypto/Hash.hpp"
 #include "../crypto/TransactionHasher.hpp"
+#include "../ledger/Ledger.hpp"
 #include "../transaction/Transaction.hpp"
 
 #include <cstdint>
@@ -16,6 +17,7 @@ class BlockchainService {
 private:
 
     Blockchain blockchain;
+    Ledger ledger;
 
     std::uint64_t transactionCounter{0};
 
@@ -54,12 +56,20 @@ public:
             return "REJECTED: tenor is required";
         }
 
+        try {
+            if (std::stold(transaction.amount) <= 0) {
+                return "REJECTED: amount must be greater than zero";
+            }
+        } catch (...) {
+            return "REJECTED: invalid amount";
+        }
+
         transaction.id =
             TransactionHasher::createId(
                 transaction
             );
 
-        transaction.status = "PENDING";
+        transaction.status = "CONFIRMED";
 
         if (transactions.find(transaction.id)
             != transactions.end()) {
@@ -100,6 +110,10 @@ public:
             transaction
         );
 
+        ledger.applyTransaction(
+            transaction
+        );
+
         return transaction.id;
     }
 
@@ -115,6 +129,13 @@ public:
         }
 
         return &iterator->second;
+    }
+
+    long double getBalance(
+            const std::string& address
+    ) const {
+
+        return ledger.getBalance(address);
     }
 
     const Blockchain& getBlockchain() const {
