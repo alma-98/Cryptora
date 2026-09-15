@@ -2,6 +2,7 @@ package com.cryptora.controller;
 
 import com.cryptora.entity.TransactionEntity;
 import com.cryptora.repository.TransactionRepository;
+import com.cryptora.service.TransactionValidationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,11 +13,14 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionRepository transactionRepository;
+    private final TransactionValidationService validationService;
 
     public TransactionController(
-            TransactionRepository transactionRepository
+            TransactionRepository transactionRepository,
+            TransactionValidationService validationService
     ) {
         this.transactionRepository = transactionRepository;
+        this.validationService = validationService;
     }
 
     @GetMapping
@@ -34,32 +38,72 @@ public class TransactionController {
     }
 
     @PostMapping
-    public TransactionEntity create(
+    public ResponseEntity<?> create(
             @RequestBody TransactionEntity transaction
     ) {
-        transaction.setStatus("PENDING");
-        return transactionRepository.save(transaction);
+        try {
+            validationService.validate(transaction);
+
+            transaction.setStatus("PENDING");
+
+            return ResponseEntity.ok(
+                    transactionRepository.save(transaction)
+            );
+
+        } catch (IllegalArgumentException exception) {
+
+            return ResponseEntity.badRequest().body(
+                    java.util.Map.of(
+                            "success", false,
+                            "message", exception.getMessage()
+                    )
+            );
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TransactionEntity> update(
+    public ResponseEntity<?> update(
             @PathVariable String id,
             @RequestBody TransactionEntity updated
     ) {
-        return transactionRepository.findById(id)
-                .map(existing -> {
-                    existing.setCoin(updated.getCoin());
-                    existing.setFromAddress(updated.getFromAddress());
-                    existing.setToAddress(updated.getToAddress());
-                    existing.setAmount(updated.getAmount());
-                    existing.setTenor(updated.getTenor());
-                    existing.setStatus(updated.getStatus());
+        try {
+            validationService.validate(updated);
 
-                    return ResponseEntity.ok(
-                            transactionRepository.save(existing)
-                    );
-                })
-                .orElse(ResponseEntity.notFound().build());
+            return transactionRepository.findById(id)
+                    .map(existing -> {
+
+                        existing.setCoin(updated.getCoin());
+                        existing.setFromAddress(
+                                updated.getFromAddress()
+                        );
+                        existing.setToAddress(
+                                updated.getToAddress()
+                        );
+                        existing.setAmount(updated.getAmount());
+                        existing.setTenor(updated.getTenor());
+
+                        if (updated.getStatus() != null &&
+                                !updated.getStatus().isBlank()) {
+                            existing.setStatus(
+                                    updated.getStatus()
+                            );
+                        }
+
+                        return ResponseEntity.ok(
+                                transactionRepository.save(existing)
+                        );
+                    })
+                    .orElse(ResponseEntity.notFound().build());
+
+        } catch (IllegalArgumentException exception) {
+
+            return ResponseEntity.badRequest().body(
+                    java.util.Map.of(
+                            "success", false,
+                            "message", exception.getMessage()
+                    )
+            );
+        }
     }
 
     @DeleteMapping("/{id}")
