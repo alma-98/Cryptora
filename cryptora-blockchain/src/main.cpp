@@ -75,6 +75,35 @@ int main() {
                         "}";
                 }
 
+                if (method == "GET" &&
+                    path.rfind("/wallet/", 0) == 0) {
+
+                    const std::string address =
+                        path.substr(
+                            std::string("/wallet/").length()
+                        );
+
+                    if (address.empty()) {
+
+                        return
+                            "{\"error\":\"address_required\"}";
+                    }
+
+                    const long double balance =
+                        blockchainService.getBalance(
+                            address
+                        );
+
+                    return
+                        "{\"address\":\"" +
+                        address +
+                        "\","
+                        "\"asset\":\"CRC\","
+                        "\"balance\":\"" +
+                        std::to_string(balance) +
+                        "\"}";
+                }
+
                 if (method == "POST" &&
                     path == "/transactions") {
 
