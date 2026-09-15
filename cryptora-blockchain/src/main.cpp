@@ -209,29 +209,69 @@ int main() {
                         if (colon == std::string::npos)
                             return "";
 
-                        const std::size_t firstQuote =
-                            json.find('"', colon + 1);
+                        std::size_t valueStart = colon + 1;
 
-                        if (firstQuote == std::string::npos)
+                        while (valueStart < json.length() &&
+                               (json[valueStart] == ' ' ||
+                                json[valueStart] == '\t' ||
+                                json[valueStart] == '\n' ||
+                                json[valueStart] == '\r')) {
+                            ++valueStart;
+                        }
+
+                        if (valueStart >= json.length())
                             return "";
 
-                        const std::size_t secondQuote =
-                            json.find('"', firstQuote + 1);
+                        if (json[valueStart] == '"') {
 
-                        if (secondQuote == std::string::npos)
-                            return "";
+                            const std::size_t firstQuote =
+                                valueStart;
 
-                        return json.substr(
-                            firstQuote + 1,
-                            secondQuote - firstQuote - 1
-                        );
+                            const std::size_t secondQuote =
+                                json.find('"',
+                                          firstQuote + 1);
+
+                            if (secondQuote == std::string::npos)
+                                return "";
+
+                            return json.substr(
+                                firstQuote + 1,
+                                secondQuote - firstQuote - 1
+                            );
+                        }
+
+                        std::size_t valueEnd =
+                            valueStart;
+
+                        while (valueEnd < json.length() &&
+                               json[valueEnd] != ',' &&
+                               json[valueEnd] != '}' &&
+                               json[valueEnd] != ']') {
+                            ++valueEnd;
+                        }
+
+                        std::string value =
+                            json.substr(
+                                valueStart,
+                                valueEnd - valueStart
+                            );
+
+                        while (!value.empty() &&
+                               (value.back() == ' ' ||
+                                value.back() == '\t' ||
+                                value.back() == '\n' ||
+                                value.back() == '\r')) {
+                            value.pop_back();
+                        }
+
+                        return value;
                     };
 
                     const std::string rpcMethod =
                         extractString(body, "method");
 
                     const std::string rpcId =
-                        extractString(body, "requestId");
+                        extractString(body, "id");
 
                     const std::string id =
                         rpcId.empty() ? "1" : rpcId;
