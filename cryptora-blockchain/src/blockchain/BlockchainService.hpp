@@ -43,47 +43,36 @@ public:
             21000000
         );
 
-        if (!storage.exists()) {
+        bool chainLoaded = false;
 
-            coinIssuer.issue(
-                21000000
-            );
-
-            ledger.issue(
-                GENESIS_ADDRESS,
-                21000000
-            );
-
-            storage.save(
-                blockchain.getChain()
-            );
-
-        } else {
+        if (storage.exists()) {
 
             std::vector<Block> loadedChain;
 
             if (storage.load(loadedChain) &&
                 validateLoadedChain(loadedChain)) {
 
-                blockchain.replaceChain(
-                    loadedChain
-                );
-
-            } else {
-
-                coinIssuer.issue(
-                    21000000
-                );
-
-                ledger.issue(
-                    GENESIS_ADDRESS,
-                    21000000
-                );
-
-                storage.save(
-                    blockchain.getChain()
-                );
+                chainLoaded =
+                    blockchain.replaceChain(
+                        loadedChain
+                    );
             }
+        }
+
+        coinIssuer.issue(
+            21000000
+        );
+
+        ledger.issue(
+            GENESIS_ADDRESS,
+            21000000
+        );
+
+        if (!chainLoaded) {
+
+            storage.save(
+                blockchain.getChain()
+            );
         }
     }
 
