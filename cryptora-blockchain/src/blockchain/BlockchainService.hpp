@@ -5,6 +5,7 @@
 #include "../crypto/TransactionHasher.hpp"
 #include "../ledger/CoinIssuer.hpp"
 #include "../ledger/Ledger.hpp"
+#include "../storage/BlockchainStorage.hpp"
 #include "../transaction/Transaction.hpp"
 
 #include <cstdint>
@@ -20,6 +21,7 @@ private:
     Blockchain blockchain;
     Ledger ledger;
     CoinIssuer coinIssuer;
+    BlockchainStorage storage;
 
     std::uint64_t transactionCounter{0};
 
@@ -31,7 +33,8 @@ private:
 
 public:
 
-    BlockchainService() {
+    BlockchainService()
+        : storage("cryptora-chain.dat") {
 
         coinIssuer.initialize(
             "CRC",
@@ -46,6 +49,10 @@ public:
         ledger.issue(
             GENESIS_ADDRESS,
             21000000
+        );
+
+        storage.save(
+            blockchain.getChain()
         );
     }
 
@@ -64,9 +71,16 @@ public:
             return false;
         }
 
-        return ledger.issue(
-            address,
-            amount
+        if (!ledger.issue(
+                address,
+                amount
+            )) {
+
+            return false;
+        }
+
+        return storage.save(
+            blockchain.getChain()
         );
     }
 
@@ -163,6 +177,13 @@ public:
             );
 
         blockchain.addBlock(block);
+
+        if (!storage.save(
+                blockchain.getChain()
+            )) {
+
+            return "REJECTED: blockchain storage failed";
+        }
 
         transactions.emplace(
             transaction.id,
